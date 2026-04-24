@@ -1,5 +1,5 @@
 [package]
-name = "computer-use-mcp"
+name = "computerbase"
 version = "0.1.0"
 edition = "2024"
 description = "A Rust MCP server for macOS desktop control — screenshots, mouse, keyboard, app management"

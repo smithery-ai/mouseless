@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    tracing::info!("computer-use-mcp starting");
+    tracing::info!("computerbase starting");
 
     let bind_addr = std::env::args().nth(1);
     server::run_http(bind_addr.as_deref()).await

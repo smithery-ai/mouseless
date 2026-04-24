@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-BIN_NAME="computer-use-mcp"
+BIN_NAME="computerbase"
 REPO_SLUG="smithery-ai/computerbase"
 # Prefer rustup's cargo over Homebrew's (Homebrew rustc lags behind).
 export PATH="$HOME/.cargo/bin:$PATH"

@@ -8,23 +8,23 @@ Rust MCP server for macOS desktop control. Screenshots, mouse, keyboard, app man
 curl -fsSL https://raw.githubusercontent.com/smithery-ai/computerbase/master/scripts/install.sh | bash
 ```
 
-Installs the latest release to `~/.local/bin/computer-use-mcp`. Override with `INSTALL_DIR=/usr/local/bin` or pin a version with `VERSION=v0.1.0`.
+Installs the latest release to `~/.local/bin/computerbase`. Override with `INSTALL_DIR=/usr/local/bin` or pin a version with `VERSION=v0.1.0`.
 
 ## Quick start
 
 ```bash
 # Run (default: 127.0.0.1:3100)
-RUST_LOG=info computer-use-mcp
+RUST_LOG=info computerbase
 
 # Custom address
-RUST_LOG=info computer-use-mcp 0.0.0.0:8080
+RUST_LOG=info computerbase 0.0.0.0:8080
 ```
 
 ## Build from source
 
 ```bash
 cargo build --release
-./target/release/computer-use-mcp
+./target/release/computerbase
 ```
 
 ## Cutting a release (maintainers)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the latest computer-use-mcp release.
+# Install the latest computerbase release.
 #
 #   curl -fsSL https://raw.githubusercontent.com/smithery-ai/computerbase/master/scripts/install.sh | bash
 #
@@ -10,7 +10,7 @@
 set -euo pipefail
 
 REPO_SLUG="smithery-ai/computerbase"
-BIN_NAME="computer-use-mcp"
+BIN_NAME="computerbase"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 
 OS=$(uname -s)
