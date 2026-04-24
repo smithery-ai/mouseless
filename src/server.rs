@@ -231,9 +231,13 @@ impl ComputerUseMcp {
         name = "screenshot",
         description = "Take a screenshot of the primary display."
     )]
+    #[tracing::instrument(skip_all, level = "info")]
     async fn screenshot(&self, Parameters(_p): Parameters<ScreenshotParams>) -> CallToolResult {
         match tokio::task::spawn_blocking(capture_screenshot).await {
-            Ok(Ok(result)) => ok_image(result.base64_image),
+            Ok(Ok(result)) => {
+                tracing::info!(bytes = result.base64_image.len(), "screenshot ok");
+                ok_image(result.base64_image)
+            }
             Ok(Err(e)) => err_result(&e.to_string()),
             Err(e) => err_result(&format!("task join failed: {e}")),
         }
@@ -243,6 +247,7 @@ impl ComputerUseMcp {
         name = "left_click",
         description = "Left-click at the given coordinates."
     )]
+    #[tracing::instrument(skip_all, fields(coord = ?p.coordinate, mods = ?p.text), level = "info")]
     async fn left_click(&self, Parameters(p): Parameters<ClickParams>) -> CallToolResult {
         self.do_click(p.coordinate, Button::Left, 1, p.text).await
     }
@@ -251,6 +256,7 @@ impl ComputerUseMcp {
         name = "right_click",
         description = "Right-click at the given coordinates."
     )]
+    #[tracing::instrument(skip_all, fields(coord = ?p.coordinate, mods = ?p.text), level = "info")]
     async fn right_click(&self, Parameters(p): Parameters<ClickParams>) -> CallToolResult {
         self.do_click(p.coordinate, Button::Right, 1, p.text).await
     }
@@ -259,6 +265,7 @@ impl ComputerUseMcp {
         name = "middle_click",
         description = "Middle-click at the given coordinates."
     )]
+    #[tracing::instrument(skip_all, fields(coord = ?p.coordinate, mods = ?p.text), level = "info")]
     async fn middle_click(&self, Parameters(p): Parameters<ClickParams>) -> CallToolResult {
         self.do_click(p.coordinate, Button::Middle, 1, p.text).await
     }
@@ -267,6 +274,7 @@ impl ComputerUseMcp {
         name = "double_click",
         description = "Double-click at the given coordinates."
     )]
+    #[tracing::instrument(skip_all, fields(coord = ?p.coordinate, mods = ?p.text), level = "info")]
     async fn double_click(&self, Parameters(p): Parameters<ClickParams>) -> CallToolResult {
         self.do_click(p.coordinate, Button::Left, 2, p.text).await
     }
@@ -275,6 +283,7 @@ impl ComputerUseMcp {
         name = "triple_click",
         description = "Triple-click at the given coordinates."
     )]
+    #[tracing::instrument(skip_all, fields(coord = ?p.coordinate, mods = ?p.text), level = "info")]
     async fn triple_click(&self, Parameters(p): Parameters<ClickParams>) -> CallToolResult {
         self.do_click(p.coordinate, Button::Left, 3, p.text).await
     }
@@ -283,6 +292,7 @@ impl ComputerUseMcp {
         name = "left_click_drag",
         description = "Press, move to target, and release."
     )]
+    #[tracing::instrument(skip_all, fields(to = ?p.coordinate, from = ?p.start_coordinate), level = "info")]
     async fn left_click_drag(&self, Parameters(p): Parameters<DragParams>) -> CallToolResult {
         let to = match self.to_logical_i32(p.coordinate) {
             Ok(v) => v,
@@ -307,6 +317,7 @@ impl ComputerUseMcp {
         name = "scroll",
         description = "Scroll at the given coordinates."
     )]
+    #[tracing::instrument(skip_all, fields(coord = ?p.coordinate, dir = ?p.scroll_direction, amount = p.scroll_amount), level = "info")]
     async fn scroll(&self, Parameters(p): Parameters<ScrollParams>) -> CallToolResult {
         let (x, y) = match self.to_logical_i32(p.coordinate) {
             Ok(v) => v,
@@ -323,6 +334,7 @@ impl ComputerUseMcp {
         name = "mouse_move",
         description = "Move the mouse cursor without clicking."
     )]
+    #[tracing::instrument(skip_all, fields(coord = ?p.coordinate), level = "info")]
     async fn mouse_move(&self, Parameters(p): Parameters<MoveParams>) -> CallToolResult {
         let (x, y) = match self.to_logical_i32(p.coordinate) {
             Ok(v) => v,
@@ -339,6 +351,7 @@ impl ComputerUseMcp {
         name = "left_mouse_down",
         description = "Press the left mouse button at the current cursor position."
     )]
+    #[tracing::instrument(skip_all, level = "info")]
     async fn left_mouse_down(&self) -> CallToolResult {
         match mouse_down(&self.input).await {
             Ok(()) => ok_text("mouse down"),
@@ -350,6 +363,7 @@ impl ComputerUseMcp {
         name = "left_mouse_up",
         description = "Release the left mouse button at the current cursor position."
     )]
+    #[tracing::instrument(skip_all, level = "info")]
     async fn left_mouse_up(&self) -> CallToolResult {
         match mouse_up(&self.input).await {
             Ok(()) => ok_text("mouse up"),
@@ -361,6 +375,7 @@ impl ComputerUseMcp {
         name = "cursor_position",
         description = "Get the current mouse cursor position."
     )]
+    #[tracing::instrument(skip_all, level = "info")]
     async fn cursor_position(&self) -> CallToolResult {
         match cursor_position(&self.input).await {
             Ok((x, y)) => ok_text(format!("({x}, {y})")),
@@ -372,6 +387,7 @@ impl ComputerUseMcp {
         name = "key",
         description = "Press a key or key combination (e.g. \"return\", \"cmd+a\")."
     )]
+    #[tracing::instrument(skip_all, fields(key = %p.text, repeat = p.repeat), level = "info")]
     async fn key(&self, Parameters(p): Parameters<KeyParams>) -> CallToolResult {
         match press_key_combo(&self.input, &p.text, p.repeat).await {
             Ok(()) => ok_text(format!("pressed {}", p.text)),
@@ -380,6 +396,7 @@ impl ComputerUseMcp {
     }
 
     #[tool(name = "type", description = "Type text into whatever currently has keyboard focus.")]
+    #[tracing::instrument(skip_all, fields(len = p.text.len()), level = "info")]
     async fn type_text(&self, Parameters(p): Parameters<TypeParams>) -> CallToolResult {
         match type_text(&self.input, &p.text).await {
             Ok(()) => ok_text("typed"),
@@ -391,6 +408,7 @@ impl ComputerUseMcp {
         name = "hold_key",
         description = "Press and hold a key for the specified duration, then release."
     )]
+    #[tracing::instrument(skip_all, fields(key = %p.text, duration = p.duration), level = "info")]
     async fn hold_key(&self, Parameters(p): Parameters<HoldKeyParams>) -> CallToolResult {
         match hold_key(&self.input, &p.text, p.duration).await {
             Ok(()) => ok_text(format!("held {} for {}s", p.text, p.duration)),
@@ -402,9 +420,13 @@ impl ComputerUseMcp {
         name = "read_clipboard",
         description = "Read the current clipboard contents as text."
     )]
+    #[tracing::instrument(skip_all, level = "info")]
     async fn read_clipboard(&self) -> CallToolResult {
         match tokio::task::spawn_blocking(clipboard::read_clipboard).await {
-            Ok(Ok(text)) => ok_text(text),
+            Ok(Ok(text)) => {
+                tracing::info!(len = text.len(), "clipboard read ok");
+                ok_text(text)
+            }
             Ok(Err(e)) => err_result(&e.to_string()),
             Err(e) => err_result(&e.to_string()),
         }
@@ -414,6 +436,7 @@ impl ComputerUseMcp {
         name = "write_clipboard",
         description = "Write text to the clipboard."
     )]
+    #[tracing::instrument(skip_all, fields(len = p.text.len()), level = "info")]
     async fn write_clipboard(&self, Parameters(p): Parameters<TypeParams>) -> CallToolResult {
         let text = p.text;
         match tokio::task::spawn_blocking(move || clipboard::write_clipboard(&text)).await {
@@ -427,6 +450,7 @@ impl ComputerUseMcp {
         name = "open_application",
         description = "Bring an application to the front, launching it if necessary."
     )]
+    #[tracing::instrument(skip_all, fields(app = %p.app), level = "info")]
     async fn open_application(&self, Parameters(p): Parameters<OpenAppParams>) -> CallToolResult {
         let app = p.app;
         match tokio::task::spawn_blocking(move || apps::open_application(&app)).await {
@@ -440,6 +464,7 @@ impl ComputerUseMcp {
         name = "wait",
         description = "Wait for a specified duration."
     )]
+    #[tracing::instrument(skip_all, fields(duration = p.duration), level = "info")]
     async fn wait(&self, Parameters(p): Parameters<WaitParams>) -> CallToolResult {
         let duration = p.duration.clamp(0.0, 100.0);
         tokio::time::sleep(tokio::time::Duration::from_secs_f64(duration)).await;
@@ -450,6 +475,7 @@ impl ComputerUseMcp {
         name = "zoom",
         description = "Take a higher-resolution screenshot of a specific region."
     )]
+    #[tracing::instrument(skip_all, fields(region = ?p.region), level = "info")]
     async fn zoom(&self, Parameters(p): Parameters<ZoomParams>) -> CallToolResult {
         let region = p.region;
         match tokio::task::spawn_blocking(move || capture_zoom(&region)).await {
@@ -463,6 +489,7 @@ impl ComputerUseMcp {
         name = "computer_batch",
         description = "Execute a sequence of actions in one call. Actions execute sequentially and stop on the first error."
     )]
+    #[tracing::instrument(skip_all, fields(actions = p.actions.len()), level = "info")]
     async fn computer_batch(&self, Parameters(p): Parameters<BatchParams>) -> CallToolResult {
         let (display, target) = match self.get_display_info() {
             Ok(info) => info,
@@ -478,6 +505,49 @@ impl ComputerUseMcp {
 
 const DEFAULT_BIND: &str = "127.0.0.1:3100";
 
+async fn log_http(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    static REQ_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let id = REQ_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let method = req.method().clone();
+    let uri = req.uri().clone();
+    let session_hdr = req
+        .headers()
+        .get("mcp-session-id")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("-")
+        .to_string();
+    let accept = req
+        .headers()
+        .get(axum::http::header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("-")
+        .to_string();
+    let start = std::time::Instant::now();
+    tracing::info!(
+        req_id = id,
+        %method,
+        %uri,
+        session = %session_hdr,
+        accept = %accept,
+        "http req start"
+    );
+    let resp = next.run(req).await;
+    let status = resp.status();
+    let elapsed_ms = start.elapsed().as_millis() as u64;
+    tracing::info!(
+        req_id = id,
+        %method,
+        %uri,
+        %status,
+        elapsed_ms,
+        "http req end"
+    );
+    resp
+}
+
 pub async fn run_http(bind_addr: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     let addr = bind_addr.unwrap_or(DEFAULT_BIND);
     tracing::info!("starting streamable HTTP server on {addr}");
@@ -485,15 +555,22 @@ pub async fn run_http(bind_addr: Option<&str>) -> Result<(), Box<dyn std::error:
     let input = InputHandle::spawn()?;
     let ct = CancellationToken::new();
 
+    static SESSION_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let service: StreamableHttpService<ComputerUseMcp, LocalSessionManager> =
         StreamableHttpService::new(
-            move || Ok(ComputerUseMcp::new(input.clone())),
+            move || {
+                let n = SESSION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                tracing::info!(session_no = n, "creating MCP session handler");
+                Ok(ComputerUseMcp::new(input.clone()))
+            },
             Default::default(),
             StreamableHttpServerConfig::default()
                 .with_cancellation_token(ct.child_token()),
         );
 
-    let router = axum::Router::new().nest_service("/mcp", service);
+    let router = axum::Router::new()
+        .nest_service("/mcp", service)
+        .layer(axum::middleware::from_fn(log_http));
     let listener = tokio::net::TcpListener::bind(addr).await?;
 
     tracing::info!("listening on http://{addr}/mcp");
@@ -501,11 +578,12 @@ pub async fn run_http(bind_addr: Option<&str>) -> Result<(), Box<dyn std::error:
     axum::serve(listener, router)
         .with_graceful_shutdown(async move {
             tokio::signal::ctrl_c().await.ok();
-            tracing::info!("shutting down");
+            tracing::warn!("ctrl-c received: cancelling in-flight requests");
             ct.cancel();
         })
         .await?;
 
+    tracing::info!("http server stopped");
     Ok(())
 }
 
