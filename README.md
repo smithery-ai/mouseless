@@ -5,16 +5,32 @@
 <h1 align="center">mouseless</h1>
 
 <p align="center">
-  Rust MCP server for macOS desktop control. Screenshots, mouse, keyboard, app management — over Streamable HTTP or stdio.
+  Rust MCP server for macOS desktop control. Screenshots, mouse, keyboard, app management — over stdio or Streamable HTTP.
 </p>
 
-## Install
+## Quick start
 
 ```bash
-cargo install mouseless
+smithery install mouseless
+smithery run mouseless
 ```
 
-Or grab a prebuilt binary:
+`smithery run` opens a stdio MCP session. Point any MCP client (Claude Code, Claude Desktop, Cursor, Continue, …) at it:
+
+```json
+{
+  "mcpServers": {
+    "mouseless": {
+      "command": "smithery",
+      "args": ["run", "mouseless"]
+    }
+  }
+}
+```
+
+## Other install options
+
+### Prebuilt binary
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/smithery-ai/mouseless/master/scripts/install.sh | bash
@@ -22,65 +38,56 @@ curl -fsSL https://raw.githubusercontent.com/smithery-ai/mouseless/master/script
 
 Installs the latest release to `~/.local/bin/mouseless`. Override with `INSTALL_DIR=/usr/local/bin` or pin a version with `VERSION=v0.1.0`.
 
-## Quick start
+### Build from crates.io
 
 ```bash
-# Streamable HTTP (default: 127.0.0.1:3100)
-RUST_LOG=info mouseless
-
-# Custom address
-RUST_LOG=info mouseless 0.0.0.0:8080
-
-# stdio (for clients that spawn the server as a subprocess)
-RUST_LOG=info mouseless --stdio
+cargo install mouseless
 ```
 
-## Build from source
+### Claude Desktop bundle
+
+Download `mouseless-vX.Y.Z.mcpb` from the [latest release](https://github.com/smithery-ai/mouseless/releases/latest) and drop it into Claude Desktop. The bundle ships a universal macOS binary with the manifest wiring up all 21 tools over stdio.
+
+## Running manually
+
+stdio is the default — no flag needed.
 
 ```bash
-cargo build --release
-./target/release/mouseless
+mouseless                       # stdio (default)
+mouseless --http                # HTTP on 127.0.0.1:3100
+mouseless --http 0.0.0.0:8080   # HTTP on custom address
+mouseless --help                # usage
+mouseless --version
 ```
 
-## Cutting a release (maintainers)
+`RUST_LOG` controls log verbosity (default `info`), e.g. `RUST_LOG=debug mouseless`.
 
-```bash
-scripts/release.sh           # tag + build + upload to GitHub Releases
-scripts/release.sh 0.2.0     # bump Cargo.toml version first
-scripts/release.sh --dry-run # build tarballs only
-```
+## MCP client configuration
 
-## Add to Claude Code
+**stdio (via Smithery):**
 
 ```json
-{
-  "mcpServers": {
-    "mouseless": {
-      "url": "http://127.0.0.1:3100/mcp"
-    }
-  }
-}
+{ "mcpServers": { "mouseless": { "command": "smithery", "args": ["run", "mouseless"] } } }
 ```
 
-Or via stdio:
+**stdio (direct binary):**
 
 ```json
-{
-  "mcpServers": {
-    "mouseless": {
-      "command": "mouseless",
-      "args": ["--stdio"]
-    }
-  }
-}
+{ "mcpServers": { "mouseless": { "command": "mouseless" } } }
+```
+
+**Streamable HTTP:**
+
+```json
+{ "mcpServers": { "mouseless": { "url": "http://127.0.0.1:3100/mcp" } } }
 ```
 
 ## Requirements
 
 - macOS (aarch64 or x86_64)
-- Rust 1.88+
-- Accessibility permission (System Settings > Privacy > Accessibility)
-- Screen Recording permission (System Settings > Privacy > Screen Recording)
+- Accessibility permission (System Settings > Privacy & Security > Accessibility)
+- Screen Recording permission (System Settings > Privacy & Security > Screen Recording)
+- Rust 1.88+ (only if building from source)
 
 ## Tools (21)
 
@@ -108,26 +115,50 @@ Or via stdio:
 | `wait` | Sleep for N seconds |
 | `computer_batch` | Execute a sequence of actions in one call |
 
+## Build from source
+
+```bash
+git clone https://github.com/smithery-ai/mouseless
+cd mouseless
+cargo build --release
+./target/release/mouseless
+```
+
+## Cutting a release (maintainers)
+
+Tag + push — CI builds both darwin targets, attaches tarballs + a `.mcpb` bundle to the GitHub Release, and runs `cargo publish`:
+
+```bash
+git tag v0.1.2 && git push origin v0.1.2
+```
+
+Local dry-run of the release script:
+
+```bash
+scripts/release.sh --dry-run
+```
+
 ## Architecture
 
 ```
 src/
-├── server.rs          # MCP tool handlers, HTTP transport
-├── display/           # Display geometry, Retina scaling, coordinate conversion
-├── capture/           # xcap screenshots, JPEG encoding, zoom
+├── main.rs             # CLI arg parsing, startup banner, transport dispatch
+├── server.rs           # MCP tool handlers, HTTP transport
+├── display/            # Display geometry, Retina scaling, coordinate conversion
+├── capture/            # xcap screenshots, JPEG encoding, zoom
 ├── input/
-│   ├── thread.rs      # Dedicated enigo thread (mpsc channels)
-│   ├── mouse.rs       # Click, move, cursor position
-│   ├── keyboard.rs    # Key parsing, combos, hold
-│   ├── drag.rs        # Drag with ease-out-cubic animation
-│   ├── scroll.rs      # Directional scroll
-│   ├── modifiers.rs   # Modifier bracket (press/release LIFO)
-│   └── animation.rs   # 60fps ease-out-cubic mouse animation
-├── clipboard.rs       # pbcopy/pbpaste with verification
-├── apps.rs            # App launch via macOS `open` command
-├── batch.rs           # Sequential action dispatcher
-├── types.rs           # ScreenCoord, LogicalCoord, BatchAction enum
-└── error.rs           # 3-tier error hierarchy
+│   ├── thread.rs       # Dedicated enigo thread (mpsc channels)
+│   ├── mouse.rs        # Click, move, cursor position
+│   ├── keyboard.rs     # Key parsing, combos, hold
+│   ├── drag.rs         # Drag with ease-out-cubic animation
+│   ├── scroll.rs       # Directional scroll
+│   ├── modifiers.rs    # Modifier bracket (press/release LIFO)
+│   └── animation.rs    # 60fps ease-out-cubic mouse animation
+├── clipboard.rs        # pbcopy/pbpaste with verification
+├── apps.rs             # App launch via macOS `open` command
+├── batch.rs            # Sequential action dispatcher
+├── types.rs            # ScreenCoord, LogicalCoord, BatchAction enum
+└── error.rs            # 3-tier error hierarchy
 ```
 
 ### Coordinate system
