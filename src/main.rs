@@ -14,10 +14,14 @@ use tracing_subscriber::EnvFilter;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(std::io::stderr)
         .init();
 
     tracing::info!("computerbase starting");
 
-    let bind_addr = std::env::args().nth(1);
-    server::run_http(bind_addr.as_deref()).await
+    let arg = std::env::args().nth(1);
+    match arg.as_deref() {
+        Some("--stdio") | Some("stdio") => server::run_stdio().await,
+        other => server::run_http(other).await,
+    }
 }

@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use enigo::Button;
 use rmcp::handler::server::wrapper::Parameters;
+use rmcp::transport::stdio;
 use rmcp::transport::streamable_http_server::{
     session::local::LocalSessionManager,
     tower::StreamableHttpService,
@@ -504,6 +505,16 @@ pub async fn run_http(bind_addr: Option<&str>) -> Result<(), Box<dyn std::error:
             ct.cancel();
         })
         .await?;
+
+    Ok(())
+}
+
+pub async fn run_stdio() -> Result<(), Box<dyn std::error::Error>> {
+    tracing::info!("starting stdio server");
+
+    let input = InputHandle::spawn()?;
+    let service = ComputerUseMcp::new(input).serve(stdio()).await?;
+    service.waiting().await?;
 
     Ok(())
 }

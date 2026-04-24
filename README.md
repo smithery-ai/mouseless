@@ -13,11 +13,14 @@ Installs the latest release to `~/.local/bin/computerbase`. Override with `INSTA
 ## Quick start
 
 ```bash
-# Run (default: 127.0.0.1:3100)
+# Streamable HTTP (default: 127.0.0.1:3100)
 RUST_LOG=info computerbase
 
 # Custom address
 RUST_LOG=info computerbase 0.0.0.0:8080
+
+# stdio (for clients that spawn the server as a subprocess)
+RUST_LOG=info computerbase --stdio
 ```
 
 ## Build from source
@@ -42,6 +45,19 @@ scripts/release.sh --dry-run # build tarballs only
   "mcpServers": {
     "computerbase": {
       "url": "http://127.0.0.1:3100/mcp"
+    }
+  }
+}
+```
+
+Or via stdio:
+
+```json
+{
+  "mcpServers": {
+    "computerbase": {
+      "command": "computerbase",
+      "args": ["--stdio"]
     }
   }
 }
