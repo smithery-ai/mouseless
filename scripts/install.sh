@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Install the latest computerbase release.
+# Install the latest mouseless release.
 #
-#   curl -fsSL https://raw.githubusercontent.com/smithery-ai/computerbase/master/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/smithery-ai/mouseless/master/scripts/install.sh | bash
 #
 # Env vars:
 #   VERSION    pin a specific tag (default: latest)
@@ -9,8 +9,8 @@
 
 set -euo pipefail
 
-REPO_SLUG="smithery-ai/computerbase"
-BIN_NAME="computerbase"
+REPO_SLUG="smithery-ai/mouseless"
+BIN_NAME="mouseless"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 
 OS=$(uname -s)

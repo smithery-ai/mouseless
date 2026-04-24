@@ -8,8 +8,8 @@
 
 set -euo pipefail
 
-BIN_NAME="computerbase"
-REPO_SLUG="smithery-ai/computerbase"
+BIN_NAME="mouseless"
+REPO_SLUG="smithery-ai/mouseless"
 # Prefer rustup's cargo over Homebrew's (Homebrew rustc lags behind).
 export PATH="$HOME/.cargo/bin:$PATH"
 

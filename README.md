@@ -1,33 +1,39 @@
-# computerbase
+# mouseless
 
-Rust MCP server for macOS desktop control. Screenshots, mouse, keyboard, app management — over Streamable HTTP.
+Rust MCP server for macOS desktop control. Screenshots, mouse, keyboard, app management — over Streamable HTTP or stdio.
 
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/smithery-ai/computerbase/master/scripts/install.sh | bash
+cargo install mouseless
 ```
 
-Installs the latest release to `~/.local/bin/computerbase`. Override with `INSTALL_DIR=/usr/local/bin` or pin a version with `VERSION=v0.1.0`.
+Or grab a prebuilt binary:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/smithery-ai/mouseless/master/scripts/install.sh | bash
+```
+
+Installs the latest release to `~/.local/bin/mouseless`. Override with `INSTALL_DIR=/usr/local/bin` or pin a version with `VERSION=v0.1.0`.
 
 ## Quick start
 
 ```bash
 # Streamable HTTP (default: 127.0.0.1:3100)
-RUST_LOG=info computerbase
+RUST_LOG=info mouseless
 
 # Custom address
-RUST_LOG=info computerbase 0.0.0.0:8080
+RUST_LOG=info mouseless 0.0.0.0:8080
 
 # stdio (for clients that spawn the server as a subprocess)
-RUST_LOG=info computerbase --stdio
+RUST_LOG=info mouseless --stdio
 ```
 
 ## Build from source
 
 ```bash
 cargo build --release
-./target/release/computerbase
+./target/release/mouseless
 ```
 
 ## Cutting a release (maintainers)
@@ -43,7 +49,7 @@ scripts/release.sh --dry-run # build tarballs only
 ```json
 {
   "mcpServers": {
-    "computerbase": {
+    "mouseless": {
       "url": "http://127.0.0.1:3100/mcp"
     }
   }
@@ -55,8 +61,8 @@ Or via stdio:
 ```json
 {
   "mcpServers": {
-    "computerbase": {
-      "command": "computerbase",
+    "mouseless": {
+      "command": "mouseless",
       "args": ["--stdio"]
     }
   }
@@ -131,3 +137,7 @@ Three distinct Rust types prevent mixing coordinate spaces at compile time.
 ### Input threading
 
 Enigo runs on a dedicated OS thread (not tokio). Commands flow through an mpsc channel, responses through oneshot channels. This avoids CGEventSource thread-affinity issues and keeps enigo's stateful click-timing tracking consistent.
+
+## License
+
+MIT

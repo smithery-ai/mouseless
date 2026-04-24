@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_thread_ids(true)
         .init();
 
-    tracing::info!("computerbase starting");
+    tracing::info!("mouseless starting");
 
     let arg = std::env::args().nth(1);
     match arg.as_deref() {
