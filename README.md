@@ -5,112 +5,62 @@
 <h1 align="center">mouseless</h1>
 
 <p align="center">
-  Rust MCP server for macOS desktop control. Screenshots, mouse, keyboard, app management — over stdio or Streamable HTTP.
+  Rust MCP server for macOS desktop control — screenshots, mouse, keyboard, apps. Over stdio or Streamable HTTP.
 </p>
 
 ## Quick start
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/smithery-ai/mouseless/master/scripts/install.sh | bash
-mouseless
 ```
 
-`mouseless` runs in stdio mode by default. Point any MCP client (Claude Code, Claude Desktop, Cursor, Continue, …) at it:
-
-```json
-{
-  "mcpServers": {
-    "mouseless": {
-      "command": "mouseless"
-    }
-  }
-}
-```
-
-The install script drops the latest release into `~/.local/bin/mouseless`. Override with `INSTALL_DIR=/usr/local/bin` or pin a version with `VERSION=v0.1.0`.
-
-## Other install options
-
-### Smithery
-
-```bash
-smithery install mouseless
-smithery run mouseless
-```
-
-### Build from crates.io
-
-```bash
-cargo install mouseless
-```
-
-### Claude Desktop bundle
-
-Download `mouseless-vX.Y.Z.mcpb` from the [latest release](https://github.com/smithery-ai/mouseless/releases/latest) and drop it into Claude Desktop. The bundle ships a universal macOS binary with the manifest wiring up all 21 tools over stdio.
-
-## Running manually
-
-stdio is the default — no flag needed.
-
-```bash
-mouseless                       # stdio (default)
-mouseless --http                # HTTP on 127.0.0.1:3100
-mouseless --http 0.0.0.0:8080   # HTTP on custom address
-mouseless --help                # usage
-mouseless --version
-```
-
-`RUST_LOG` controls log verbosity (default `info`), e.g. `RUST_LOG=debug mouseless`.
-
-## MCP client configuration
-
-**stdio (direct binary):**
+Point any MCP client at it — `mouseless` runs stdio by default:
 
 ```json
 { "mcpServers": { "mouseless": { "command": "mouseless" } } }
 ```
 
-**stdio (via Smithery):**
+Set `INSTALL_DIR` or `VERSION` to override the install script's defaults (`~/.local/bin`, latest).
 
-```json
-{ "mcpServers": { "mouseless": { "command": "smithery", "args": ["run", "mouseless"] } } }
+## Other install options
+
+```bash
+smithery install mouseless && smithery run mouseless   # via Smithery
+cargo install mouseless                                # from crates.io
 ```
 
-**Streamable HTTP:**
+Or download `mouseless-vX.Y.Z.mcpb` from the [latest release](https://github.com/smithery-ai/mouseless/releases/latest) and drop it into Claude Desktop.
 
-```json
-{ "mcpServers": { "mouseless": { "url": "http://127.0.0.1:3100/mcp" } } }
+## Usage
+
+```bash
+mouseless                       # stdio (default)
+mouseless --http [ADDR]         # HTTP (default 127.0.0.1:3100)
+mouseless --help | --version
 ```
+
+HTTP client config: `{ "url": "http://127.0.0.1:3100/mcp" }`. `RUST_LOG` tunes verbosity (default `info`).
 
 ## Requirements
 
-- macOS (aarch64 or x86_64)
-- Accessibility permission (System Settings > Privacy & Security > Accessibility)
-- Screen Recording permission (System Settings > Privacy & Security > Screen Recording)
-- Rust 1.88+ (only if building from source)
+macOS (aarch64 / x86_64). Grant **Accessibility** and **Screen Recording** in System Settings > Privacy & Security.
 
 ## Tools (21)
 
 | Tool | Description |
 |------|-------------|
-| `screenshot` | Capture the primary display (returns MCP ImageContent) |
+| `screenshot` | Capture the primary display (MCP ImageContent) |
 | `zoom` | High-res capture of a screen region |
-| `left_click` | Left-click with optional modifier keys |
-| `right_click` | Right-click with optional modifier keys |
-| `middle_click` | Middle-click with optional modifier keys |
-| `double_click` | Double-click at coordinates |
-| `triple_click` | Triple-click at coordinates |
-| `left_click_drag` | Click-drag from start to end with animated move |
+| `left_click` / `right_click` / `middle_click` | Click with optional modifiers |
+| `double_click` / `triple_click` | Multi-click at coordinates |
+| `left_click_drag` | Click-drag with animated move |
 | `scroll` | Scroll up/down/left/right at coordinates |
 | `mouse_move` | Move cursor without clicking |
-| `left_mouse_down` | Press left button (hold) |
-| `left_mouse_up` | Release left button |
+| `left_mouse_down` / `left_mouse_up` | Press/release left button |
 | `cursor_position` | Get current cursor coordinates |
-| `key` | Key combo in xdotool syntax (`cmd+shift+a`) |
+| `key` / `hold_key` | Key combo (xdotool syntax) or hold for N seconds |
 | `type` | Type text into focused element |
-| `hold_key` | Hold a key for N seconds |
-| `read_clipboard` | Read clipboard via pbpaste |
-| `write_clipboard` | Write clipboard via pbcopy (with read-back verify) |
+| `read_clipboard` / `write_clipboard` | pbpaste / pbcopy (write verifies) |
 | `open_application` | Launch or focus an app by name or bundle ID |
 | `wait` | Sleep for N seconds |
 | `computer_batch` | Execute a sequence of actions in one call |
@@ -118,62 +68,32 @@ mouseless --version
 ## Build from source
 
 ```bash
-git clone https://github.com/smithery-ai/mouseless
-cd mouseless
+git clone https://github.com/smithery-ai/mouseless && cd mouseless
 cargo build --release
-./target/release/mouseless
 ```
 
-## Cutting a release (maintainers)
+## Release (maintainers)
 
-Tag + push — CI builds both darwin targets, attaches tarballs + a `.mcpb` bundle to the GitHub Release, and runs `cargo publish`:
+Tag and push — CI builds both darwin targets, attaches tarballs + `.mcpb` to the GitHub Release, and runs `cargo publish`:
 
 ```bash
 git tag v0.1.2 && git push origin v0.1.2
-```
-
-Local dry-run of the release script:
-
-```bash
-scripts/release.sh --dry-run
 ```
 
 ## Architecture
 
 ```
 src/
-├── main.rs             # CLI arg parsing, startup banner, transport dispatch
-├── server.rs           # MCP tool handlers, HTTP transport
-├── display/            # Display geometry, Retina scaling, coordinate conversion
-├── capture/            # xcap screenshots, JPEG encoding, zoom
-├── input/
-│   ├── thread.rs       # Dedicated enigo thread (mpsc channels)
-│   ├── mouse.rs        # Click, move, cursor position
-│   ├── keyboard.rs     # Key parsing, combos, hold
-│   ├── drag.rs         # Drag with ease-out-cubic animation
-│   ├── scroll.rs       # Directional scroll
-│   ├── modifiers.rs    # Modifier bracket (press/release LIFO)
-│   └── animation.rs    # 60fps ease-out-cubic mouse animation
-├── clipboard.rs        # pbcopy/pbpaste with verification
-├── apps.rs             # App launch via macOS `open` command
-├── batch.rs            # Sequential action dispatcher
-├── types.rs            # ScreenCoord, LogicalCoord, BatchAction enum
-└── error.rs            # 3-tier error hierarchy
+├── main.rs              # arg parsing, startup banner, transport dispatch
+├── server.rs            # MCP tool handlers, HTTP transport
+├── display/ capture/    # display geometry, Retina scaling, xcap screenshots, zoom
+├── input/               # dedicated enigo thread, mouse/keyboard/drag/scroll/animation
+├── clipboard.rs apps.rs batch.rs   # pbcopy/pbpaste, app launch, batch dispatch
+├── types.rs             # ScreenCoord / LogicalCoord / PhysicalCoord
+└── error.rs             # 3-tier error hierarchy
 ```
 
-### Coordinate system
-
-The model sees a resized screenshot (max 1280x768). Coordinates from tool calls are in that image space. The server converts them to macOS logical points for enigo/CGEvent:
-
-```
-ScreenCoord (model) → LogicalCoord (enigo) → PhysicalCoord (framebuffer)
-```
-
-Three distinct Rust types prevent mixing coordinate spaces at compile time.
-
-### Input threading
-
-Enigo runs on a dedicated OS thread (not tokio). Commands flow through an mpsc channel, responses through oneshot channels. This avoids CGEventSource thread-affinity issues and keeps enigo's stateful click-timing tracking consistent.
+Coordinates from the model are in the resized screenshot space (max 1280×768) and converted to macOS logical points — three distinct Rust types prevent mixing spaces at compile time. Enigo runs on a dedicated OS thread with mpsc/oneshot channels to avoid CGEventSource thread-affinity issues.
 
 ## License
 
