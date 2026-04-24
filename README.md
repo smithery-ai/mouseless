@@ -24,12 +24,20 @@ Set `INSTALL_DIR` or `VERSION` to override the install script's defaults (`~/.lo
 
 ## Other install options
 
+Smithery:
+
 ```bash
-smithery install mouseless && smithery run mouseless   # via Smithery
-cargo install mouseless                                # from crates.io
+smithery install mouseless
+smithery run mouseless
 ```
 
-Or download `mouseless-vX.Y.Z.mcpb` from the [latest release](https://github.com/smithery-ai/mouseless/releases/latest) and drop it into Claude Desktop.
+From crates.io:
+
+```bash
+cargo install mouseless
+```
+
+Claude Desktop bundle — download `mouseless-vX.Y.Z.mcpb` from the [latest release](https://github.com/smithery-ai/mouseless/releases/latest) and drop it in.
 
 ## Usage
 
