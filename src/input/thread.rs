@@ -10,6 +10,20 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::error::ToolError;
 
+impl InputCommand {
+    pub fn name(&self) -> &'static str {
+        match self {
+            InputCommand::MoveMouse { .. } => "MoveMouse",
+            InputCommand::Click { .. } => "Click",
+            InputCommand::Scroll { .. } => "Scroll",
+            InputCommand::Key { .. } => "Key",
+            InputCommand::TypeText { .. } => "TypeText",
+            InputCommand::CursorPosition { .. } => "CursorPosition",
+            InputCommand::MainDisplaySize { .. } => "MainDisplaySize",
+        }
+    }
+}
+
 /// Commands sent to the enigo input thread.
 pub enum InputCommand {
     MoveMouse {
@@ -66,8 +80,12 @@ impl InputHandle {
                     }
                 };
 
+                tracing::info!("enigo input thread ready");
                 // Block on receiving commands (not async — this is a plain thread)
                 while let Some(cmd) = rx.blocking_recv() {
+                    let cmd_name = cmd.name();
+                    let started = std::time::Instant::now();
+                    tracing::debug!(cmd = cmd_name, "input cmd start");
                     match cmd {
                         InputCommand::MoveMouse { x, y, reply } => {
                             let result = enigo
@@ -124,6 +142,12 @@ impl InputHandle {
                             let _ = reply.send(result);
                         }
                     }
+                    let elapsed_us = started.elapsed().as_micros() as u64;
+                    if elapsed_us > 50_000 {
+                        tracing::warn!(cmd = cmd_name, elapsed_us, "slow input cmd");
+                    } else {
+                        tracing::debug!(cmd = cmd_name, elapsed_us, "input cmd end");
+                    }
                 }
 
                 tracing::info!("enigo input thread shutting down");
@@ -139,12 +163,22 @@ impl InputHandle {
         make_cmd: impl FnOnce(oneshot::Sender<Result<T, ToolError>>) -> InputCommand,
     ) -> Result<T, ToolError> {
         let (reply_tx, reply_rx) = oneshot::channel();
+        let cmd = make_cmd(reply_tx);
+        let cmd_name = cmd.name();
+        let queued_at = std::time::Instant::now();
         self.tx
-            .send(make_cmd(reply_tx))
+            .send(cmd)
             .map_err(|_| ToolError::MouseFailed("input thread died".into()))?;
-        reply_rx
+        let result = reply_rx
             .await
-            .map_err(|_| ToolError::MouseFailed("input thread dropped reply".into()))?
+            .map_err(|_| ToolError::MouseFailed("input thread dropped reply".into()))?;
+        let roundtrip_us = queued_at.elapsed().as_micros() as u64;
+        if roundtrip_us > 100_000 {
+            tracing::warn!(cmd = cmd_name, roundtrip_us, "slow input roundtrip");
+        } else {
+            tracing::trace!(cmd = cmd_name, roundtrip_us, "input roundtrip");
+        }
+        result
     }
 
     // ── Public API ────────────────────────────────────────────────
